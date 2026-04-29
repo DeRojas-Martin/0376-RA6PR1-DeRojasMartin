@@ -43,23 +43,48 @@ $emailRecordat = $_COOKIE['recordar_email'] ?? '';
 <html lang="ca">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Login - Control Horari</title>
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
-    <h1>Login</h1>
+<body class="login-body">
 
-    <?php if ($error): ?>
-        <p style="color:red;"><?= htmlspecialchars($error) ?></p>
-    <?php endif; ?>
+    <div class="login-card">
+        <h1 class="login-title">Login</h1>
+        <p class="login-subtitle">Accedeix al sistema de control horari</p>
 
-    <form method="POST">
-        <label>Correu electrònic:</label><br>
-        <input type="email" name="email" value="<?= htmlspecialchars($emailRecordat) ?>" required><br><br>
+        <?php if ($error): ?>
+            <div class="error-box">
+                <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
 
-        <label>Contrasenya:</label><br>
-        <input type="password" name="password" required><br><br>
+        <form method="POST">
+            <div class="form-group">
+                <label for="email">Correu electrònic</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    value="<?= htmlspecialchars($emailRecordat) ?>" 
+                    placeholder="empleat@test.com"
+                    required
+                >
+            </div>
 
-        <button type="submit">Iniciar sessió</button>
-    </form>
+            <div class="form-group">
+                <label for="password">Contrasenya</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Introdueix la contrasenya"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="btn-primary">Iniciar sessió</button>
+        </form>
+    </div>
+
 </body>
 </html>

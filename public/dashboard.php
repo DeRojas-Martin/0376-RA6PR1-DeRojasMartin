@@ -19,53 +19,142 @@ $stmt->execute([
 
 $fitxatgeAvui = $stmt->fetch();
 
+$entrada = $fitxatgeAvui['hora_entrada'] ?? '--';
+$sortida = $fitxatgeAvui['hora_sortida'] ?? '--';
+$estat = $fitxatgeAvui['estat'] ?? 'Sense fitxar';
+$totalMinuts = $fitxatgeAvui['total_minuts'] ?? 0;
+
+$hores = floor($totalMinuts / 60);
+$minuts = $totalMinuts % 60;
+$totalFormat = $hores . 'h ' . $minuts . 'min';
+
 ?>
 
 <!DOCTYPE html>
 <html lang="ca">
 <head>
     <meta charset="UTF-8">
-    <title>Inici</title>
+    <title>Inici - Control Horari</title>
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
-    <h1>Inici</h1>
+<body class="app-body">
 
-    <p>Hola, <?= htmlspecialchars($_SESSION['nom']) ?></p>
-    <p>Rol: <?= htmlspecialchars($_SESSION['rol']) ?></p>
+    <header class="topbar">
+        <div class="logo">
+            <div class="logo-box">CH</div>
+            <span>Control Horari</span>
+        </div>
 
-    <hr>
+        <div class="user-info">
+            <div class="user-avatar">
+                <?= strtoupper(substr($_SESSION['nom'], 0, 1)) ?>
+            </div>
+            <div>
+                <strong><?= htmlspecialchars($_SESSION['nom']) ?></strong><br>
+                <small><?= htmlspecialchars($_SESSION['rol']) ?></small>
+            </div>
+        </div>
+    </header>
 
-    <h2>Estat d'avui</h2>
+    <div class="layout">
+        <aside class="sidebar">
+            <a href="dashboard.php" class="active">Inici</a>
+            <a href="registrar_tiempo.php">Registrar temps</a>
+            <a href="historial.php">Historial</a>
+            <a href="incidencias.php">Incidències</a>
 
-    <?php if (!$fitxatgeAvui): ?>
-        <p>Encara no has fitxat l'entrada.</p>
-        <a href="fichar_entrada.php">Fitxar entrada</a>
-    <?php else: ?>
-        <p>Entrada: <?= htmlspecialchars($fitxatgeAvui['hora_entrada']) ?></p>
-        <p>Sortida: <?= htmlspecialchars($fitxatgeAvui['hora_sortida'] ?? '--') ?></p>
-        <p>Estat: <?= htmlspecialchars($fitxatgeAvui['estat']) ?></p>
-        <p>Total minuts: <?= htmlspecialchars($fitxatgeAvui['total_minuts']) ?></p>
+            <?php if ($_SESSION['rol'] === 'admin'): ?>
+                <a href="admin.php">Panell admin</a>
+            <?php endif; ?>
 
-        <?php if (!$fitxatgeAvui['hora_sortida']): ?>
-            <a href="fichar_salida.php">Fitxar sortida</a>
-        <?php else: ?>
-            <p>Jornada finalitzada.</p>
-        <?php endif; ?>
-    <?php endif; ?>
+            <a href="logout.php">Tancar sessió</a>
+        </aside>
 
-    <hr>
+        <main class="content">
+            <h1 class="page-title">Pantalla d’inici de l’empleat</h1>
 
-    <nav>
-        <a href="dashboard.php">Inici</a> |
-        <a href="registrar_tiempo.php">Registrar temps</a> |
-        <a href="historial.php">Historial</a> |
-        <a href="incidencias.php">Incidències</a> |
+            <section class="welcome-card">
+                <h2>Hola, <?= htmlspecialchars($_SESSION['nom']) ?></h2>
+                <p>Benvingut/da al sistema de control horari i registre de projectes.</p>
+            </section>
 
-        <?php if ($_SESSION['rol'] === 'admin'): ?>
-            <a href="admin.php">Panell admin</a> |
-        <?php endif; ?>
+            <section class="status-grid">
+                <div class="status-card">
+                    <span>Entrada</span>
+                    <strong><?= htmlspecialchars($entrada) ?></strong>
+                </div>
 
-        <a href="logout.php">Tancar sessió</a>
-    </nav>
+                <div class="status-card">
+                    <span>Sortida</span>
+                    <strong><?= htmlspecialchars($sortida) ?></strong>
+                </div>
+
+                <div class="status-card">
+                    <span>Temps treballat</span>
+                    <strong><?= htmlspecialchars($totalFormat) ?></strong>
+                </div>
+            </section>
+
+            <section class="main-panel">
+                <h2>Estat d'avui</h2>
+
+                <div class="info-row">
+                    <span class="info-label">Estat de la jornada</span>
+                    <span class="info-value"><?= htmlspecialchars($estat) ?></span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Hora d'entrada</span>
+                    <span class="info-value"><?= htmlspecialchars($entrada) ?></span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Hora de sortida</span>
+                    <span class="info-value"><?= htmlspecialchars($sortida) ?></span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Total treballat</span>
+                    <span class="info-value"><?= htmlspecialchars($totalFormat) ?></span>
+                </div>
+
+                <div class="actions">
+                    <?php if (!$fitxatgeAvui): ?>
+                        <a href="fichar_entrada.php" class="btn-action btn-entry">Fitxar entrada</a>
+                        <span class="btn-action btn-disabled">Fitxar sortida</span>
+                    <?php elseif (!$fitxatgeAvui['hora_sortida']): ?>
+                        <span class="btn-action btn-disabled">Entrada ja fitxada</span>
+                        <a href="fichar_salida.php" class="btn-action btn-exit">Fitxar sortida</a>
+                    <?php else: ?>
+                        <span class="btn-action btn-disabled">Entrada ja fitxada</span>
+                        <span class="btn-action btn-disabled">Sortida ja fitxada</span>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (isset($_GET['error'])): ?>
+                    <div class="notice-box">
+                        <?php if ($_GET['error'] === 'ja_fitxat'): ?>
+                            Ja has fitxat l’entrada avui.
+                        <?php elseif ($_GET['error'] === 'sense_entrada'): ?>
+                            No pots fitxar sortida sense haver fitxat entrada.
+                        <?php elseif ($_GET['error'] === 'ja_sortida'): ?>
+                            Ja has fitxat la sortida avui.
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </section>
+
+            <section class="quick-access">
+                <a href="historial.php" class="quick-card">Consultar historial</a>
+                <a href="registrar_tiempo.php" class="quick-card">Registrar temps en projecte</a>
+                <a href="incidencias.php" class="quick-card">Veure incidències</a>
+
+                <?php if ($_SESSION['rol'] === 'admin'): ?>
+                    <a href="admin.php" class="quick-card">Panell administrador</a>
+                <?php endif; ?>
+            </section>
+        </main>
+    </div>
+
 </body>
 </html>
