@@ -649,3 +649,39 @@ body {
     }
 }
 
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+@media (max-width: 600px) {
+    .page-title {
+        font-size: 24px;
+    }
+
+    .welcome-card h2 {
+        font-size: 22px;
+    }
+
+    .stat-box strong,
+    .status-card strong {
+        font-size: 22px;
+    }
+
+    .styled-table {
+        min-width: 520px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        height: auto;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .logo,
+    .user-info {
+        width: 100%;
+        justify-content: center;
+    }
+}
