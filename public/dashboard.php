@@ -7,9 +7,14 @@ require_login();
 
 $usuariId = $_SESSION['usuari_id'];
 
-$sqlUsuari = "SELECT u.nom, u.rol, d.nom AS departament
+$sqlUsuari = "SELECT u.nom, u.rol, d.nom AS departament,
+                     h.nom AS nom_horari,
+                     h.hora_entrada,
+                     h.hora_sortida,
+                     h.hores_minimes
               FROM usuaris u
               LEFT JOIN departaments d ON u.departament_id = d.id
+              LEFT JOIN horaris h ON u.horari_id = h.id
               WHERE u.id = :usuari_id";
 
 $stmtUsuari = $pdo->prepare($sqlUsuari);
@@ -52,6 +57,10 @@ $totalMinuts = $fitxatgeAvui['total_minuts'] ?? 0;
 $hores = floor($totalMinuts / 60);
 $minuts = $totalMinuts % 60;
 $totalFormat = $hores . 'h ' . $minuts . 'min';
+
+$entradaPrevista = $usuari['hora_entrada'] ?? '--';
+$sortidaPrevista = $usuari['hora_sortida'] ?? '--';
+$horesMinimes = $usuari['hores_minimes'] ?? '--';
 ?>
 <!DOCTYPE html>
 <html lang="ca">
@@ -85,6 +94,7 @@ $totalFormat = $hores . 'h ' . $minuts . 'min';
         <a href="registrar_tiempo.php">Registrar temps</a>
         <a href="historial.php">Historial</a>
         <a href="incidencias.php">Incidències</a>
+        <a href="avisos.php">Avisos</a>
 
         <?php if ($_SESSION['rol'] === 'admin'): ?>
             <a href="admin.php">Panell admin</a>
@@ -101,16 +111,34 @@ $totalFormat = $hores . 'h ' . $minuts . 'min';
         <section class="welcome-card">
             <h2>Hola, <?= htmlspecialchars($_SESSION['nom']) ?></h2>
             <p>Departament: <?= htmlspecialchars($usuari['departament'] ?? 'Sense departament') ?></p>
+            <p>Horari assignat: <?= htmlspecialchars($usuari['nom_horari'] ?? 'Sense horari') ?></p>
         </section>
 
         <section class="status-grid">
             <div class="status-card">
-                <span>Entrada</span>
+                <span>Entrada prevista</span>
+                <strong><?= htmlspecialchars($entradaPrevista) ?></strong>
+            </div>
+
+            <div class="status-card">
+                <span>Sortida prevista</span>
+                <strong><?= htmlspecialchars($sortidaPrevista) ?></strong>
+            </div>
+
+            <div class="status-card">
+                <span>Hores mínimes</span>
+                <strong><?= htmlspecialchars($horesMinimes) ?> h</strong>
+            </div>
+        </section>
+
+        <section class="status-grid">
+            <div class="status-card">
+                <span>Entrada d’avui</span>
                 <strong><?= htmlspecialchars($entrada) ?></strong>
             </div>
 
             <div class="status-card">
-                <span>Sortida</span>
+                <span>Sortida d’avui</span>
                 <strong><?= htmlspecialchars($sortida) ?></strong>
             </div>
 
@@ -173,6 +201,12 @@ $totalFormat = $hores . 'h ' . $minuts . 'min';
                     Sortida registrada correctament.
                 </div>
             <?php endif; ?>
+
+            <?php if (isset($_GET['ok']) && $_GET['ok'] === 'entrada'): ?>
+                <div class="message-box">
+                    Entrada registrada correctament.
+                </div>
+            <?php endif; ?>
         </section>
 
         <?php if (!empty($avisos)): ?>
@@ -192,6 +226,7 @@ $totalFormat = $hores . 'h ' . $minuts . 'min';
             <a href="historial.php" class="quick-card">Consultar historial</a>
             <a href="registrar_tiempo.php" class="quick-card">Registrar temps en projecte</a>
             <a href="incidencias.php" class="quick-card">Veure incidències</a>
+            <a href="avisos.php" class="quick-card">Veure avisos</a>
 
             <?php if ($_SESSION['rol'] === 'admin'): ?>
                 <a href="admin.php" class="quick-card">Panell administrador</a>
