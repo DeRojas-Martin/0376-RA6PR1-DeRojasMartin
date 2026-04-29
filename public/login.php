@@ -28,6 +28,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['nom'] = $usuari['nom'];
         $_SESSION['rol'] = $usuari['rol'];
 
+        if ($usuari['rol'] === 'admin') {
+            header('Location: admin.php');
+            exit;
+        }
+
+        if ($usuari['rol'] === 'rrhh') {
+            header('Location: rrhh.php');
+            exit;
+        }
+
+        if ($usuari['rol'] === 'comptabilitat') {
+            header('Location: comptabilitat.php');
+            exit;
+        }
+
+        if ($usuari['rol'] === 'direccio') {
+            header('Location: direccio.php');
+            exit;
+        }
+
         header('Location: dashboard.php');
         exit;
     } else {
