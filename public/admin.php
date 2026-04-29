@@ -31,19 +31,47 @@ $sqlProjectes = "SELECT p.nom, p.client, p.hores_estimades,
 $stmtProjectes = $pdo->query($sqlProjectes);
 $projectes = $stmtProjectes->fetchAll();
 
-$sqlJornadesObertes = "SELECT COUNT(*) AS total
-                       FROM fitxatges
-                       WHERE data = CURDATE()
-                       AND hora_entrada IS NOT NULL
-                       AND hora_sortida IS NULL";
+$jornadesObertes = $pdo->query("
+    SELECT COUNT(*) AS total
+    FROM fitxatges
+    WHERE data = CURDATE()
+    AND hora_entrada IS NOT NULL
+    AND hora_sortida IS NULL
+")->fetch()['total'];
 
-$jornadesObertes = $pdo->query($sqlJornadesObertes)->fetch()['total'];
+$incidenciesPendents = $pdo->query("
+    SELECT COUNT(*) AS total
+    FROM incidencies
+    WHERE estat = 'pendent'
+")->fetch()['total'];
 
-$sqlIncidenciesPendents = "SELECT COUNT(*) AS total
-                           FROM incidencies
-                           WHERE estat = 'pendent'";
+$arribadesTardAvui = $pdo->query("
+    SELECT COUNT(*) AS total
+    FROM incidencies
+    WHERE data = CURDATE()
+    AND tipus = 'Arribada tard'
+")->fetch()['total'];
 
-$incidenciesPendents = $pdo->query($sqlIncidenciesPendents)->fetch()['total'];
+$sortidesAnticipadesAvui = $pdo->query("
+    SELECT COUNT(*) AS total
+    FROM incidencies
+    WHERE data = CURDATE()
+    AND tipus = 'Sortida anticipada'
+")->fetch()['total'];
+
+$menysHoresAvui = $pdo->query("
+    SELECT COUNT(*) AS total
+    FROM incidencies
+    WHERE data = CURDATE()
+    AND tipus = 'Menys hores treballades'
+")->fetch()['total'];
+
+$autoTancadesAvui = $pdo->query("
+    SELECT COUNT(*) AS total
+    FROM fitxatges
+    WHERE data = CURDATE()
+    AND estat = 'auto_tancat'
+")->fetch()['total'];
 
 $totalFitxatges = count($fitxatges);
 $totalIncidencies = count($incidencies);
@@ -79,6 +107,9 @@ $totalProjectes = count($projectes);
         <a href="admin.php" class="active">Panell admin</a>
         <a href="llista_vermella.php">Llista vermella</a>
         <a href="reports.php">Reports</a>
+        <a href="rrhh.php">RRHH</a>
+        <a href="comptabilitat.php">Comptabilitat</a>
+        <a href="direccio.php">Direcció</a>
         <a href="logout.php">Tancar sessió</a>
     </aside>
 
@@ -107,48 +138,29 @@ $totalProjectes = count($projectes);
             </div>
         </div>
 
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span>Arribades tard avui</span>
+                <strong><?= $arribadesTardAvui ?></strong>
+            </div>
+            <div class="stat-box">
+                <span>Sortides anticipades avui</span>
+                <strong><?= $sortidesAnticipadesAvui ?></strong>
+            </div>
+            <div class="stat-box">
+                <span>Menys hores avui</span>
+                <strong><?= $menysHoresAvui ?></strong>
+            </div>
+            <div class="stat-box">
+                <span>Auto tancades avui</span>
+                <strong><?= $autoTancadesAvui ?></strong>
+            </div>
+        </div>
+
         <div class="actions" style="margin-bottom: 25px;">
             <a href="llista_vermella.php" class="btn-action btn-exit">Veure llista vermella</a>
             <a href="reports.php" class="btn-action btn-entry">Veure reports</a>
             <a href="auto_tancar_jornades.php" class="btn-action btn-secondary">Tancar jornades obertes</a>
-        </div>
-
-        <div class="table-card" style="margin-bottom: 25px;">
-            <h2>Fitxatges globals</h2>
-            <table class="styled-table">
-                <thead>
-                    <tr>
-                        <th>Usuari</th>
-                        <th>Email</th>
-                        <th>Data</th>
-                        <th>Entrada</th>
-                        <th>Sortida</th>
-                        <th>Total minuts</th>
-                        <th>Estat</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($fitxatges as $fitxatge): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($fitxatge['nom']) ?></td>
-                            <td><?= htmlspecialchars($fitxatge['email']) ?></td>
-                            <td><?= htmlspecialchars($fitxatge['data']) ?></td>
-                            <td><?= htmlspecialchars($fitxatge['hora_entrada']) ?></td>
-                            <td><?= htmlspecialchars($fitxatge['hora_sortida'] ?? '--') ?></td>
-                            <td><?= htmlspecialchars($fitxatge['total_minuts']) ?></td>
-                            <td>
-                                <?php if ($fitxatge['estat'] === 'tancat'): ?>
-                                    <span class="badge badge-success">Tancat</span>
-                                <?php elseif ($fitxatge['estat'] === 'auto_tancat'): ?>
-                                    <span class="badge badge-warning">Auto tancat</span>
-                                <?php else: ?>
-                                    <span class="badge badge-info"><?= htmlspecialchars($fitxatge['estat']) ?></span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
         </div>
 
         <div class="table-card" style="margin-bottom: 25px;">
@@ -186,23 +198,37 @@ $totalProjectes = count($projectes);
         </div>
 
         <div class="table-card">
-            <h2>Projectes</h2>
+            <h2>Fitxatges globals</h2>
             <table class="styled-table">
                 <thead>
                     <tr>
-                        <th>Projecte</th>
-                        <th>Client</th>
-                        <th>Hores estimades</th>
-                        <th>Hores reals</th>
+                        <th>Usuari</th>
+                        <th>Email</th>
+                        <th>Data</th>
+                        <th>Entrada</th>
+                        <th>Sortida</th>
+                        <th>Total minuts</th>
+                        <th>Estat</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($projectes as $projecte): ?>
+                    <?php foreach ($fitxatges as $fitxatge): ?>
                         <tr>
-                            <td><?= htmlspecialchars($projecte['nom']) ?></td>
-                            <td><?= htmlspecialchars($projecte['client']) ?></td>
-                            <td><?= htmlspecialchars($projecte['hores_estimades']) ?></td>
-                            <td><?= round($projecte['minuts_reals'] / 60, 2) ?></td>
+                            <td><?= htmlspecialchars($fitxatge['nom']) ?></td>
+                            <td><?= htmlspecialchars($fitxatge['email']) ?></td>
+                            <td><?= htmlspecialchars($fitxatge['data']) ?></td>
+                            <td><?= htmlspecialchars($fitxatge['hora_entrada']) ?></td>
+                            <td><?= htmlspecialchars($fitxatge['hora_sortida'] ?? '--') ?></td>
+                            <td><?= htmlspecialchars($fitxatge['total_minuts']) ?></td>
+                            <td>
+                                <?php if ($fitxatge['estat'] === 'tancat'): ?>
+                                    <span class="badge badge-success">Tancat</span>
+                                <?php elseif ($fitxatge['estat'] === 'auto_tancat'): ?>
+                                    <span class="badge badge-warning">Auto tancat</span>
+                                <?php else: ?>
+                                    <span class="badge badge-info"><?= htmlspecialchars($fitxatge['estat']) ?></span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
