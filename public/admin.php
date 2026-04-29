@@ -6,35 +6,48 @@ require_once __DIR__ . '/../app/config/database.php';
 require_login();
 require_role(['admin']);
 
-$sql = "SELECT u.nom, u.email, f.data, f.hora_entrada, f.hora_sortida, f.total_minuts, f.estat
-        FROM fitxatges f
-        JOIN usuaris u ON f.usuari_id = u.id
-        ORDER BY f.data DESC";
+$sqlFitxatges = "SELECT u.nom, u.email, f.data, f.hora_entrada, f.hora_sortida, f.total_minuts, f.estat
+                 FROM fitxatges f
+                 JOIN usuaris u ON f.usuari_id = u.id
+                 ORDER BY f.data DESC";
 
-$stmt = $pdo->query($sql);
-$fitxatges = $stmt->fetchAll();
+$stmtFitxatges = $pdo->query($sqlFitxatges);
+$fitxatges = $stmtFitxatges->fetchAll();
 
-$sql = "SELECT u.nom, i.tipus, i.descripcio, i.data, i.estat
-        FROM incidencies i
-        JOIN usuaris u ON i.usuari_id = u.id
-        ORDER BY i.data DESC";
+$sqlIncidencies = "SELECT u.nom, i.tipus, i.descripcio, i.data, i.estat
+                   FROM incidencies i
+                   JOIN usuaris u ON i.usuari_id = u.id
+                   ORDER BY i.data DESC, i.id DESC";
 
-$stmt = $pdo->query($sql);
-$incidencies = $stmt->fetchAll();
+$stmtIncidencies = $pdo->query($sqlIncidencies);
+$incidencies = $stmtIncidencies->fetchAll();
 
-$sql = "SELECT p.nom, p.client, p.hores_estimades,
-               COALESCE(SUM(t.total_minuts), 0) AS minuts_reals
-        FROM projectes p
-        LEFT JOIN tasques t ON p.id = t.projecte_id
-        GROUP BY p.id, p.nom, p.client, p.hores_estimades";
+$sqlProjectes = "SELECT p.nom, p.client, p.hores_estimades,
+                        COALESCE(SUM(t.total_minuts), 0) AS minuts_reals
+                 FROM projectes p
+                 LEFT JOIN tasques t ON p.id = t.projecte_id
+                 GROUP BY p.id, p.nom, p.client, p.hores_estimades";
 
-$stmt = $pdo->query($sql);
-$projectes = $stmt->fetchAll();
+$stmtProjectes = $pdo->query($sqlProjectes);
+$projectes = $stmtProjectes->fetchAll();
+
+$sqlJornadesObertes = "SELECT COUNT(*) AS total
+                       FROM fitxatges
+                       WHERE data = CURDATE()
+                       AND hora_entrada IS NOT NULL
+                       AND hora_sortida IS NULL";
+
+$jornadesObertes = $pdo->query($sqlJornadesObertes)->fetch()['total'];
+
+$sqlIncidenciesPendents = "SELECT COUNT(*) AS total
+                           FROM incidencies
+                           WHERE estat = 'pendent'";
+
+$incidenciesPendents = $pdo->query($sqlIncidenciesPendents)->fetch()['total'];
 
 $totalFitxatges = count($fitxatges);
 $totalIncidencies = count($incidencies);
 $totalProjectes = count($projectes);
-$totalUsuarisActius = count(array_unique(array_column($fitxatges, 'email')));
 ?>
 <!DOCTYPE html>
 <html lang="ca">
@@ -63,36 +76,41 @@ $totalUsuarisActius = count(array_unique(array_column($fitxatges, 'email')));
 <div class="layout">
     <aside class="sidebar">
         <a href="dashboard.php">Inici</a>
-        <a href="registrar_tiempo.php">Registrar temps</a>
-        <a href="historial.php">Historial</a>
-        <a href="incidencias.php">Incidències</a>
         <a href="admin.php" class="active">Panell admin</a>
+        <a href="llista_vermella.php">Llista vermella</a>
+        <a href="reports.php">Reports</a>
         <a href="logout.php">Tancar sessió</a>
     </aside>
 
     <main class="content">
         <div class="page-header-card">
             <h1 class="page-title">Panell de l’administrador</h1>
-            <p>Vista global de fitxatges, incidències i projectes.</p>
+            <p>Resum general del sistema de control horari.</p>
         </div>
 
         <div class="stats-grid">
             <div class="stat-box">
-                <span>Fitxatges</span>
+                <span>Fitxatges totals</span>
                 <strong><?= $totalFitxatges ?></strong>
             </div>
             <div class="stat-box">
-                <span>Incidències</span>
+                <span>Incidències totals</span>
                 <strong><?= $totalIncidencies ?></strong>
             </div>
             <div class="stat-box">
-                <span>Projectes</span>
-                <strong><?= $totalProjectes ?></strong>
+                <span>Incidències pendents</span>
+                <strong><?= $incidenciesPendents ?></strong>
             </div>
             <div class="stat-box">
-                <span>Usuaris amb activitat</span>
-                <strong><?= $totalUsuarisActius ?></strong>
+                <span>Jornades obertes avui</span>
+                <strong><?= $jornadesObertes ?></strong>
             </div>
+        </div>
+
+        <div class="actions" style="margin-bottom: 25px;">
+            <a href="llista_vermella.php" class="btn-action btn-exit">Veure llista vermella</a>
+            <a href="reports.php" class="btn-action btn-entry">Veure reports</a>
+            <a href="auto_tancar_jornades.php" class="btn-action btn-secondary">Tancar jornades obertes</a>
         </div>
 
         <div class="table-card" style="margin-bottom: 25px;">
@@ -121,8 +139,10 @@ $totalUsuarisActius = count(array_unique(array_column($fitxatges, 'email')));
                             <td>
                                 <?php if ($fitxatge['estat'] === 'tancat'): ?>
                                     <span class="badge badge-success">Tancat</span>
+                                <?php elseif ($fitxatge['estat'] === 'auto_tancat'): ?>
+                                    <span class="badge badge-warning">Auto tancat</span>
                                 <?php else: ?>
-                                    <span class="badge badge-warning"><?= htmlspecialchars($fitxatge['estat']) ?></span>
+                                    <span class="badge badge-info"><?= htmlspecialchars($fitxatge['estat']) ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -132,7 +152,7 @@ $totalUsuarisActius = count(array_unique(array_column($fitxatges, 'email')));
         </div>
 
         <div class="table-card" style="margin-bottom: 25px;">
-            <h2>Incidències</h2>
+            <h2>Últimes incidències</h2>
             <table class="styled-table">
                 <thead>
                     <tr>
@@ -166,7 +186,7 @@ $totalUsuarisActius = count(array_unique(array_column($fitxatges, 'email')));
         </div>
 
         <div class="table-card">
-            <h2>Reports de projectes</h2>
+            <h2>Projectes</h2>
             <table class="styled-table">
                 <thead>
                     <tr>
