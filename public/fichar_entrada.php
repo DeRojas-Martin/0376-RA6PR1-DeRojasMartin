@@ -24,20 +24,20 @@ if ($fitxatge) {
     exit;
 }
 
-$sqlHorari = "SELECT h.hora_entrada, h.marge_retard
+$sqlUsuari = "SELECT u.email, u.nom, h.hora_entrada, h.marge_retard
               FROM usuaris u
               JOIN horaris h ON u.horari_id = h.id
               WHERE u.id = :usuari_id";
 
-$stmtHorari = $pdo->prepare($sqlHorari);
-$stmtHorari->execute([
+$stmtUsuari = $pdo->prepare($sqlUsuari);
+$stmtUsuari->execute([
     ':usuari_id' => $usuariId
 ]);
 
-$horari = $stmtHorari->fetch();
+$usuari = $stmtUsuari->fetch();
 
-$horaPrevista = $horari['hora_entrada'];
-$margeRetard = (int)$horari['marge_retard'];
+$horaPrevista = $usuari['hora_entrada'];
+$margeRetard = (int)$usuari['marge_retard'];
 
 $sql = "INSERT INTO fitxatges 
         (usuari_id, data, hora_entrada, estat)
@@ -75,6 +75,8 @@ if ($retard > $margeRetard) {
         ':id' => $fitxatgeId
     ]);
 
+    $descripcio = "L'usuari ha arribat $retard minuts tard.";
+
     $sql = "INSERT INTO incidencies
             (usuari_id, fitxatge_id, tipus, descripcio, data)
             VALUES
@@ -84,9 +86,25 @@ if ($retard > $margeRetard) {
     $stmt->execute([
         ':usuari_id' => $usuariId,
         ':fitxatge_id' => $fitxatgeId,
-        ':descripcio' => "L'usuari ha arribat $retard minuts tard."
+        ':descripcio' => $descripcio
+    ]);
+
+    $assumpte = 'Avís d’arribada tard';
+    $missatge = "Hola " . $usuari['nom'] . ", avui has fitxat l'entrada amb un retard de $retard minuts.";
+
+    $sql = "INSERT INTO avisos_email
+            (usuari_id, tipus, email_desti, assumpte, missatge)
+            VALUES
+            (:usuari_id, 'Arribada tard', :email_desti, :assumpte, :missatge)";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':usuari_id' => $usuariId,
+        ':email_desti' => $usuari['email'],
+        ':assumpte' => $assumpte,
+        ':missatge' => $missatge
     ]);
 }
 
-header('Location: dashboard.php');
+header('Location: dashboard.php?ok=entrada');
 exit;
