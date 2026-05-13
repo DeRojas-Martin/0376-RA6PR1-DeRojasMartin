@@ -103,6 +103,9 @@ $emailRecordat = $_COOKIE['recordar_email'] ?? '';
             </div>
 
             <button type="submit" class="btn-primary">Iniciar sessió</button>
+            <div style="margin-top: 15px; text-align: center;">
+                <a href="register.php" class="btn-secondary" style="display:inline-block; width:100%;">Registrar-se</a>
+            </div>
         </form>
     </div>
 
